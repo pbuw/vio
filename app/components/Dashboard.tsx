@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'categories'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'categories' | 'templates'>('overview');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
 
   useEffect(() => {
