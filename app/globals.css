@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Vio Brand Colors */
+  --vio-deep-purple: #5844AC;
+  --vio-vibrant: #8E7CE8;
+  --profit-green: #00C896;
+  --alert-coral: #FF8080;
+  --off-white: #F9FAFC;
+  --dark-grey: #2D3436;
+  
+  /* Background & Foreground */
+  --background: #F9FAFC;
+  --foreground: #2D3436;
+  
+  /* Force light mode */
+  color-scheme: light;
 }
 
 @theme inline {
+  --color-vio-deep-purple: var(--vio-deep-purple);
+  --color-vio-vibrant: var(--vio-vibrant);
+  --color-profit-green: var(--profit-green);
+  --color-alert-coral: var(--alert-coral);
+  --color-off-white: var(--off-white);
+  --color-dark-grey: var(--dark-grey);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-poppins: var(--font-poppins);
+  --font-inter: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
+  background-color: #F9FAFC;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #F9FAFC !important;
+  color: #2D3436 !important;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), system-ui, sans-serif;
 }

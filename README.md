@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vio - Versicherungsleistungen verwalten
 
-## Getting Started
+Vio ist eine Web-Anwendung zur Verwaltung von Zusatzversicherungsleistungen, Ausgaben und Budgets.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 1. Datenbank einrichten (Neon.com)
+
+1. Erstelle ein Konto auf [Neon.com](https://neon.tech)
+2. Erstelle ein neues Projekt
+3. Kopiere die Connection String aus dem Dashboard
+
+### 2. Umgebungsvariablen
+
+Erstelle eine `.env` Datei im Root-Verzeichnis:
+
+```env
+# Database (Neon.com PostgreSQL)
+DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
+
+# NextAuth
+NEXTAUTH_SECRET="your-secret-key-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Datenbank-Migrationen
 
-## Learn More
+```bash
+# Generiere Prisma Client
+pnpm db:generate
 
-To learn more about Next.js, take a look at the following resources:
+# Führe Migrationen aus
+pnpm db:migrate
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Entwicklungsserver starten
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev
+```
 
-## Deploy on Vercel
+Öffne [http://localhost:3000](http://localhost:3000) im Browser.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Datenbank
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Die Anwendung verwendet PostgreSQL über Neon.com. Das Prisma Schema ist in `prisma/schema.prisma` definiert.
+
+### Nützliche Befehle
+
+- `pnpm db:generate` - Generiert Prisma Client
+- `pnpm db:migrate` - Führt Migrationen aus
+- `pnpm db:studio` - Öffnet Prisma Studio zur Datenbank-Verwaltung

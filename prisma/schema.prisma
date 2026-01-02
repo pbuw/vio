@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  password      String
+  name          String?
+  role          String        @default("user") // "user" or "superadmin"
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  categories    Category[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  coverageRules CoverageRule[]
+  expenses    Expense[]
+  budgets     Budget[]
+}
+
+model CoverageRule {
+  id            String      @id @default(cuid())
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  insuranceType String      // "basic" or "supplementary"
+  percentage    Float?      // Percentage coverage (null if not applicable)
+  maxAmount     Float?      // Maximum amount covered (null if unlimited)
+  description   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([subCategoryId, insuranceType])
+}
+
+model Expense {
+  id                String      @id @default(cuid())
+  amount            Float
+  date              DateTime    @default(now())
+  description       String?
+  subCategoryId     String
+  subCategory       SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  basicCoverage     Float       @default(0) // Amount covered by basic insurance
+  supplementaryCoverage Float   @default(0) // Amount covered by supplementary insurance
+  userPays          Float       // Amount user has to pay
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Budget {
+  id            String      @id @default(cuid())
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  year          Int
+  amount        Float       // Total budget for the year
+  usedAmount    Float       @default(0) // Amount used so far
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([subCategoryId, year])
+}
+
+// Template models for supplementary insurance products
+model Template {
+  id          String        @id @default(cuid())
+  name        String        @unique // e.g., "Sanitas Vital Premium"
+  description String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  templateCategories TemplateCategory[]
+}
+
+model TemplateCategory {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  templateId  String
+  template    Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order       Int           @default(0) // For ordering categories
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  templateSubCategories TemplateSubCategory[]
+}
+
+model TemplateSubCategory {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  templateCategoryId String
+  templateCategory TemplateCategory @relation(fields: [templateCategoryId], references: [id], onDelete: Cascade)
+  order       Int           @default(0) // For ordering subcategories
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  templateCoverageRules TemplateCoverageRule[]
+  templateBudgets TemplateBudget[]
+}
+
+model TemplateCoverageRule {
+  id            String      @id @default(cuid())
+  templateSubCategoryId String
+  templateSubCategory TemplateSubCategory @relation(fields: [templateSubCategoryId], references: [id], onDelete: Cascade)
+  insuranceType String      // "basic" or "supplementary"
+  percentage    Float?      // Percentage coverage (null if not applicable)
+  maxAmount     Float?      // Maximum amount covered (null if unlimited)
+  description   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([templateSubCategoryId, insuranceType])
+}
+
+model TemplateBudget {
+  id            String      @id @default(cuid())
+  templateSubCategoryId String
+  templateSubCategory TemplateSubCategory @relation(fields: [templateSubCategoryId], references: [id], onDelete: Cascade)
+  year          Int         // Year for which this budget applies (0 = all years)
+  amount        Float       // Total budget for the year
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([templateSubCategoryId, year])
+}
+
