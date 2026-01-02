@@ -68,5 +68,6 @@ export const authOptions: NextAuthConfig = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-change-in-production',
+  trustHost: true, // Allow Vercel and other hosting platforms to set the URL automatically
 };
 
