@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const subCategoryId = searchParams.get('subCategoryId');
+    const categoryId = searchParams.get('categoryId');
     const year = searchParams.get('year');
 
     const where: any = {
@@ -33,6 +34,22 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Subcategory not found' }, { status: 404 });
       }
       where.subCategoryId = subCategoryId;
+    }
+    if (categoryId) {
+      // Verify category belongs to user
+      const category = await db.category.findFirst({
+        where: {
+          id: categoryId,
+          userId: user.id,
+        },
+      });
+      if (!category) {
+        return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+      }
+      where.subCategory = {
+        ...where.subCategory,
+        categoryId: categoryId,
+      };
     }
     if (year) {
       const yearNum = parseInt(year);

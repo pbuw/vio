@@ -28,6 +28,9 @@ export default function Dashboard() {
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'categories' | 'templates'>('overview');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,18 +41,23 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboard();
     
-    // Listen for expense added/deleted events
+    // Listen for expense added/updated/deleted events
     const handleExpenseAdded = () => {
+      fetchDashboard();
+    };
+    const handleExpenseUpdated = () => {
       fetchDashboard();
     };
     const handleExpenseDeleted = () => {
       fetchDashboard();
     };
     window.addEventListener('expenseAdded', handleExpenseAdded);
+    window.addEventListener('expenseUpdated', handleExpenseUpdated);
     window.addEventListener('expenseDeleted', handleExpenseDeleted);
     
     return () => {
       window.removeEventListener('expenseAdded', handleExpenseAdded);
+      window.removeEventListener('expenseUpdated', handleExpenseUpdated);
       window.removeEventListener('expenseDeleted', handleExpenseDeleted);
     };
   }, [year]);
@@ -152,6 +160,9 @@ export default function Dashboard() {
               onClick={() => {
                 setActiveTab('overview');
                 setShowExpenseForm(false);
+                setEditingExpense(null);
+                setSelectedCategoryId(null);
+                setSelectedCategoryName(null);
               }}
               className={`px-4 py-2 font-medium font-inter transition-colors ${
                 activeTab === 'overview'
@@ -165,6 +176,7 @@ export default function Dashboard() {
               onClick={() => {
                 setActiveTab('expenses');
                 setShowExpenseForm(false);
+                setEditingExpense(null);
               }}
               className={`px-4 py-2 font-medium font-inter transition-colors ${
                 activeTab === 'expenses'
@@ -178,6 +190,7 @@ export default function Dashboard() {
               onClick={() => {
                 setActiveTab('categories');
                 setShowExpenseForm(false);
+                setEditingExpense(null);
               }}
               className={`px-4 py-2 font-medium font-inter transition-colors ${
                 activeTab === 'categories'
@@ -192,6 +205,7 @@ export default function Dashboard() {
                 onClick={() => {
                   setActiveTab('templates');
                   setShowExpenseForm(false);
+                  setEditingExpense(null);
                 }}
                 className={`px-4 py-2 font-medium font-inter transition-colors ${
                   activeTab === 'templates'
@@ -249,13 +263,24 @@ export default function Dashboard() {
             ) : null}
 
             {/* Budget Display - More Prominent */}
-            <BudgetDisplay />
+            <BudgetDisplay
+              onCategoryClick={(categoryId, categoryName) => {
+                setSelectedCategoryId(categoryId);
+                setSelectedCategoryName(categoryName);
+                setActiveTab('expenses');
+                setShowExpenseForm(false);
+                setEditingExpense(null);
+              }}
+            />
 
             {/* Add Expense Button and Form */}
             <div className="space-y-4">
-              {!showExpenseForm ? (
+              {!showExpenseForm && !editingExpense ? (
                 <button
-                  onClick={() => setShowExpenseForm(true)}
+                  onClick={() => {
+                    setShowExpenseForm(true);
+                    setEditingExpense(null);
+                  }}
                   className="w-full md:w-auto bg-[#5844AC] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#5844AC]/90 transition-all shadow-sm font-poppins"
                 >
                   + Ausgabe hinzufügen
@@ -263,15 +288,26 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-[#2D3436] font-poppins">Ausgabe hinzufügen</h2>
+                    <h2 className="text-xl font-semibold text-[#2D3436] font-poppins">
+                      {editingExpense ? 'Ausgabe bearbeiten' : 'Ausgabe hinzufügen'}
+                    </h2>
                     <button
-                      onClick={() => setShowExpenseForm(false)}
+                      onClick={() => {
+                        setShowExpenseForm(false);
+                        setEditingExpense(null);
+                      }}
                       className="px-4 py-2 text-sm text-[#2D3436]/60 hover:text-[#2D3436] font-inter transition-colors"
                     >
                       Abbrechen
                     </button>
                   </div>
-                  <ExpenseForm onClose={() => setShowExpenseForm(false)} />
+                  <ExpenseForm
+                    onClose={() => {
+                      setShowExpenseForm(false);
+                      setEditingExpense(null);
+                    }}
+                    expense={editingExpense}
+                  />
                 </div>
               )}
             </div>
@@ -282,9 +318,12 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* Add Expense Button and Form */}
             <div className="space-y-4">
-              {!showExpenseForm ? (
+              {!showExpenseForm && !editingExpense ? (
                 <button
-                  onClick={() => setShowExpenseForm(true)}
+                  onClick={() => {
+                    setShowExpenseForm(true);
+                    setEditingExpense(null);
+                  }}
                   className="w-full md:w-auto bg-[#5844AC] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#5844AC]/90 transition-all shadow-sm font-poppins"
                 >
                   + Ausgabe hinzufügen
@@ -292,19 +331,41 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-[#2D3436] font-poppins">Ausgabe hinzufügen</h2>
+                    <h2 className="text-xl font-semibold text-[#2D3436] font-poppins">
+                      {editingExpense ? 'Ausgabe bearbeiten' : 'Ausgabe hinzufügen'}
+                    </h2>
                     <button
-                      onClick={() => setShowExpenseForm(false)}
+                      onClick={() => {
+                        setShowExpenseForm(false);
+                        setEditingExpense(null);
+                      }}
                       className="px-4 py-2 text-sm text-[#2D3436]/60 hover:text-[#2D3436] font-inter transition-colors"
                     >
                       Abbrechen
                     </button>
                   </div>
-                  <ExpenseForm onClose={() => setShowExpenseForm(false)} />
+                  <ExpenseForm
+                    onClose={() => {
+                      setShowExpenseForm(false);
+                      setEditingExpense(null);
+                    }}
+                    expense={editingExpense}
+                  />
                 </div>
               )}
             </div>
-            <ExpenseList />
+            <ExpenseList
+              onEdit={(expense) => {
+                setEditingExpense(expense);
+                setShowExpenseForm(true);
+              }}
+              categoryId={selectedCategoryId}
+              categoryName={selectedCategoryName}
+              onClearFilter={() => {
+                setSelectedCategoryId(null);
+                setSelectedCategoryName(null);
+              }}
+            />
           </div>
         )}
 

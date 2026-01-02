@@ -20,11 +20,29 @@ interface CoverageCalculation {
   userPays: number;
 }
 
-interface ExpenseFormProps {
-  onClose?: () => void;
+interface Expense {
+  id: string;
+  amount: number;
+  date: string;
+  description: string | null;
+  subCategoryId: string;
+  subCategory: {
+    id: string;
+    name: string;
+    categoryId: string;
+    category: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
-export default function ExpenseForm({ onClose }: ExpenseFormProps) {
+interface ExpenseFormProps {
+  onClose?: () => void;
+  expense?: Expense | null;
+}
+
+export default function ExpenseForm({ onClose, expense }: ExpenseFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string>('');
@@ -35,9 +53,30 @@ export default function ExpenseForm({ onClose }: ExpenseFormProps) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const isEditMode = !!expense;
+
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (expense) {
+      // Pre-fill form with expense data
+      setSelectedCategoryId(expense.subCategory.category.id);
+      setSelectedSubCategoryId(expense.subCategory.id);
+      setAmount(expense.amount.toString());
+      setDescription(expense.description || '');
+      setDate(new Date(expense.date).toISOString().split('T')[0]);
+    } else {
+      // Reset form when expense is cleared (edit mode cancelled)
+      setAmount('');
+      setDescription('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setSelectedCategoryId('');
+      setSelectedSubCategoryId('');
+      setCalculation(null);
+    }
+  }, [expense]);
 
   useEffect(() => {
     if (selectedSubCategoryId && amount) {
@@ -85,40 +124,53 @@ export default function ExpenseForm({ onClose }: ExpenseFormProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
+      const url = isEditMode ? '/api/expenses' : '/api/expenses';
+      const method = isEditMode ? 'PUT' : 'POST';
+      const body = isEditMode
+        ? {
+            id: expense.id,
+            amount: parseFloat(amount),
+            date,
+            description,
+            subCategoryId: selectedSubCategoryId,
+          }
+        : {
+            amount: parseFloat(amount),
+            date,
+            description,
+            subCategoryId: selectedSubCategoryId,
+          };
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          date,
-          description,
-          subCategoryId: selectedSubCategoryId,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        // Reset form
-        setAmount('');
-        setDescription('');
-        setDate(new Date().toISOString().split('T')[0]);
-        setSelectedCategoryId('');
-        setSelectedSubCategoryId('');
-        setCalculation(null);
-        // Trigger refresh in parent
-        window.dispatchEvent(new Event('expenseAdded'));
-        // Close form if onClose callback provided
+        // Trigger refresh in parent first
+        window.dispatchEvent(new Event(isEditMode ? 'expenseUpdated' : 'expenseAdded'));
+        // Close form if onClose callback provided (this will reset the form via parent state)
         if (onClose) {
           onClose();
+        } else {
+          // Only reset form if no onClose callback (shouldn't happen in normal flow)
+          setAmount('');
+          setDescription('');
+          setDate(new Date().toISOString().split('T')[0]);
+          setSelectedCategoryId('');
+          setSelectedSubCategoryId('');
+          setCalculation(null);
         }
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error creating expense:', error);
-        alert('Ups, die Ausgabe konnte nicht erstellt werden. Bitte versuche es noch einmal.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} expense:`, error);
+      alert(`Ups, die Ausgabe konnte nicht ${isEditMode ? 'aktualisiert' : 'erstellt'} werden. Bitte versuche es noch einmal.`);
     } finally {
       setSubmitting(false);
     }
@@ -129,6 +181,9 @@ export default function ExpenseForm({ onClose }: ExpenseFormProps) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-[#2D3436]/5">
+      <h2 className="text-xl font-semibold text-[#2D3436] font-poppins mb-4">
+        {isEditMode ? 'Ausgabe bearbeiten' : 'Ausgabe hinzufügen'}
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-semibold mb-2.5 text-[#2D3436] font-inter">
@@ -281,7 +336,13 @@ export default function ExpenseForm({ onClose }: ExpenseFormProps) {
           disabled={submitting || !selectedSubCategoryId || !amount}
           className="w-full bg-[#5844AC] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#5844AC]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm font-poppins"
         >
-          {submitting ? 'Wird gespeichert...' : 'Ausgabe hinzufügen'}
+          {submitting
+            ? isEditMode
+              ? 'Wird aktualisiert...'
+              : 'Wird gespeichert...'
+            : isEditMode
+            ? 'Ausgabe aktualisieren'
+            : 'Ausgabe hinzufügen'}
         </button>
       </form>
     </div>

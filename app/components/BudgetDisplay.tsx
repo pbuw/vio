@@ -6,6 +6,7 @@ interface BudgetSummary {
   id: string;
   subCategoryId: string;
   subCategoryName: string;
+  categoryId?: string;
   categoryName: string;
   totalBudget: number;
   usedAmount: number;
@@ -13,7 +14,11 @@ interface BudgetSummary {
   percentageUsed: number;
 }
 
-export default function BudgetDisplay() {
+interface BudgetDisplayProps {
+  onCategoryClick?: (categoryId: string, categoryName: string) => void;
+}
+
+export default function BudgetDisplay({ onCategoryClick }: BudgetDisplayProps) {
   const [budgets, setBudgets] = useState<BudgetSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -108,7 +113,20 @@ export default function BudgetDisplay() {
       ) : (
         <div className="space-y-4">
           {budgets.map((budget) => (
-            <div key={budget.id} className="border border-[#2D3436]/10 rounded-2xl p-5 bg-[#F9FAFC]">
+            <div
+              key={budget.id}
+              onClick={() => {
+                if (onCategoryClick && budget.categoryId) {
+                  onCategoryClick(budget.categoryId, budget.categoryName);
+                }
+              }}
+              className={`border border-[#2D3436]/10 rounded-2xl p-5 bg-[#F9FAFC] transition-all ${
+                onCategoryClick && budget.categoryId
+                  ? 'cursor-pointer hover:border-[#5844AC]/30 hover:bg-[#5844AC]/5 hover:shadow-md'
+                  : ''
+              }`}
+              title={onCategoryClick && budget.categoryId ? `Ausgaben für ${budget.categoryName} anzeigen` : undefined}
+            >
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-semibold text-[#2D3436] font-poppins">

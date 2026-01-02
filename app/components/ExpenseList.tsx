@@ -10,9 +10,11 @@ interface Expense {
   basicCoverage: number;
   supplementaryCoverage: number;
   userPays: number;
+  subCategoryId: string;
   subCategory: {
     id: string;
     name: string;
+    categoryId: string;
     category: {
       id: string;
       name: string;
@@ -20,7 +22,14 @@ interface Expense {
   };
 }
 
-export default function ExpenseList() {
+interface ExpenseListProps {
+  onEdit?: (expense: Expense) => void;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  onClearFilter?: () => void;
+}
+
+export default function ExpenseList({ onEdit, categoryId, categoryName, onClearFilter }: ExpenseListProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -28,21 +37,35 @@ export default function ExpenseList() {
   useEffect(() => {
     fetchExpenses();
     
-    // Listen for expense added event
+    // Listen for expense added/updated/deleted events
     const handleExpenseAdded = () => {
       fetchExpenses();
     };
+    const handleExpenseUpdated = () => {
+      fetchExpenses();
+    };
+    const handleExpenseDeleted = () => {
+      fetchExpenses();
+    };
     window.addEventListener('expenseAdded', handleExpenseAdded);
+    window.addEventListener('expenseUpdated', handleExpenseUpdated);
+    window.addEventListener('expenseDeleted', handleExpenseDeleted);
     
     return () => {
       window.removeEventListener('expenseAdded', handleExpenseAdded);
+      window.removeEventListener('expenseUpdated', handleExpenseUpdated);
+      window.removeEventListener('expenseDeleted', handleExpenseDeleted);
     };
-  }, [year]);
+  }, [year, categoryId]);
 
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/expenses?year=${year}`);
+      let url = `/api/expenses?year=${year}`;
+      if (categoryId) {
+        url += `&categoryId=${categoryId}`;
+      }
+      const response = await fetch(url);
       const data = await response.json();
       setExpenses(data);
     } catch (error) {
@@ -127,8 +150,32 @@ export default function ExpenseList() {
         </div>
       </div>
 
+      {categoryName && (
+        <div className="mb-4 flex items-center gap-3 bg-[#5844AC]/10 border border-[#5844AC]/20 rounded-xl px-4 py-3">
+          <span className="text-sm text-[#2D3436]/70 font-inter">
+            Gefiltert nach:
+          </span>
+          <span className="text-sm font-semibold text-[#5844AC] font-poppins">
+            {categoryName}
+          </span>
+          {onClearFilter && (
+            <button
+              onClick={onClearFilter}
+              className="ml-auto px-3 py-1.5 text-sm text-[#2D3436]/60 hover:text-[#2D3436] hover:bg-white/50 rounded-lg transition-colors font-inter"
+              title="Filter entfernen"
+            >
+              Filter entfernen
+            </button>
+          )}
+        </div>
+      )}
+
       {expenses.length === 0 ? (
-        <p className="text-[#2D3436]/60 font-inter">Noch keine Ausgaben für {year}. Füge deine erste Ausgabe hinzu, um den Überblick zu behalten.</p>
+        <p className="text-[#2D3436]/60 font-inter">
+          {categoryName
+            ? `Noch keine Ausgaben für ${categoryName} in ${year}.`
+            : `Noch keine Ausgaben für ${year}. Füge deine erste Ausgabe hinzu, um den Überblick zu behalten.`}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-inter">
@@ -175,13 +222,24 @@ export default function ExpenseList() {
                     CHF {expense.userPays.toFixed(2)}
                   </td>
                   <td className="py-3 px-3 text-center">
-                    <button
-                      onClick={() => handleDelete(expense.id)}
-                      className="px-3 py-1.5 text-sm text-[#FF8080] hover:bg-[#FF8080]/10 rounded-xl transition-colors font-inter"
-                      title="Ausgabe löschen"
-                    >
-                      Löschen
-                    </button>
+                    <div className="flex gap-2 justify-center">
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(expense)}
+                          className="px-3 py-1.5 text-sm text-[#5844AC] hover:bg-[#5844AC]/10 rounded-xl transition-colors font-inter"
+                          title="Ausgabe bearbeiten"
+                        >
+                          Bearbeiten
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(expense.id)}
+                        className="px-3 py-1.5 text-sm text-[#FF8080] hover:bg-[#FF8080]/10 rounded-xl transition-colors font-inter"
+                        title="Ausgabe löschen"
+                      >
+                        Löschen
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
       id: budget.id,
       subCategoryId: budget.subCategoryId,
       subCategoryName: budget.subCategory.name,
+      categoryId: budget.subCategory.category.id,
       categoryName: budget.subCategory.category.name,
       totalBudget: budget.amount,
       usedAmount: budget.usedAmount,
