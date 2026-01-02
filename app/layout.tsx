@@ -18,6 +18,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vio",
   description: "Deine Zusatzversicherung. Einfach genutzt. Dein praktischer Gesundheits-Begleiter.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
