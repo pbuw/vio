@@ -21,19 +21,24 @@ export default function BudgetDisplay() {
   useEffect(() => {
     fetchDashboard();
     
-    // Listen for expense added/deleted events
+    // Listen for expense added/deleted/updated events
     const handleExpenseAdded = () => {
       fetchDashboard();
     };
     const handleExpenseDeleted = () => {
       fetchDashboard();
     };
+    const handleExpenseUpdated = () => {
+      fetchDashboard();
+    };
     window.addEventListener('expenseAdded', handleExpenseAdded);
     window.addEventListener('expenseDeleted', handleExpenseDeleted);
+    window.addEventListener('expenseUpdated', handleExpenseUpdated);
     
     return () => {
       window.removeEventListener('expenseAdded', handleExpenseAdded);
       window.removeEventListener('expenseDeleted', handleExpenseDeleted);
+      window.removeEventListener('expenseUpdated', handleExpenseUpdated);
     };
   }, [year]);
 

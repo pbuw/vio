@@ -159,12 +159,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (budget) {
+      // Use increment for atomic updates to prevent race conditions
       await db.budget.update({
         where: {
           id: budget.id,
         },
         data: {
-          usedAmount: budget.usedAmount + calculation.supplementaryCoverage,
+          usedAmount: {
+            increment: calculation.supplementaryCoverage,
+          },
         },
       });
     }
@@ -237,13 +240,15 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (budget) {
-      // Subtract the supplementary coverage from the used amount
+      // Use decrement for atomic updates to prevent race conditions
       await db.budget.update({
         where: {
           id: budget.id,
         },
         data: {
-          usedAmount: Math.max(0, budget.usedAmount - expense.supplementaryCoverage),
+          usedAmount: {
+            decrement: expense.supplementaryCoverage,
+          },
         },
       });
     }
@@ -253,6 +258,173 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting expense:', error);
     return NextResponse.json(
       { error: 'Failed to delete expense' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, amount, date, description, subCategoryId } = body;
+
+    if (!id || !amount || !subCategoryId) {
+      return NextResponse.json(
+        { error: 'ID, amount, and subCategoryId are required' },
+        { status: 400 }
+      );
+    }
+
+    // Get the existing expense
+    const existingExpense = await db.expense.findFirst({
+      where: {
+        id,
+        subCategory: {
+          category: {
+            userId: user.id,
+          },
+        },
+      },
+      include: {
+        subCategory: true,
+      },
+    });
+
+    if (!existingExpense) {
+      return NextResponse.json(
+        { error: 'Expense not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify new subcategory belongs to user
+    const subCategory = await db.subCategory.findFirst({
+      where: {
+        id: subCategoryId,
+        category: { userId: user.id },
+      },
+    });
+
+    if (!subCategory) {
+      return NextResponse.json({ error: 'Subcategory not found' }, { status: 404 });
+    }
+
+    // Get coverage rules for the new subcategory
+    const coverageRules = await db.coverageRule.findMany({
+      where: {
+        subCategoryId,
+      },
+    });
+
+    const basicRule = coverageRules.find((r) => r.insuranceType === 'basic') || null;
+    const supplementaryRule = coverageRules.find((r) => r.insuranceType === 'supplementary') || null;
+
+    // Calculate new coverage
+    const calculation = calculateCoverage(
+      amount,
+      basicRule
+        ? {
+            insuranceType: 'basic',
+            percentage: basicRule.percentage,
+            maxAmount: basicRule.maxAmount,
+          }
+        : null,
+      supplementaryRule
+        ? {
+            insuranceType: 'supplementary',
+            percentage: supplementaryRule.percentage,
+            maxAmount: supplementaryRule.maxAmount,
+          }
+        : null
+    );
+
+    // Update the expense
+    const expenseDate = date ? new Date(date) : new Date();
+    const year = expenseDate.getFullYear();
+    const oldYear = new Date(existingExpense.date).getFullYear();
+
+    const expense = await db.expense.update({
+      where: { id },
+      data: {
+        amount,
+        date: expenseDate,
+        description: description || null,
+        subCategoryId,
+        basicCoverage: calculation.basicCoverage,
+        supplementaryCoverage: calculation.supplementaryCoverage,
+        userPays: calculation.userPays,
+      },
+      include: {
+        subCategory: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    // Update budgets: decrement old, increment new
+    // Only update if subcategory or year changed, or if amount changed
+    const subCategoryChanged = existingExpense.subCategoryId !== subCategoryId;
+    const yearChanged = oldYear !== year;
+    const amountChanged = existingExpense.supplementaryCoverage !== calculation.supplementaryCoverage;
+
+    if (subCategoryChanged || yearChanged || amountChanged) {
+      // Decrement old budget
+      if (existingExpense.subCategoryId && existingExpense.supplementaryCoverage) {
+        const oldBudget = await db.budget.findUnique({
+          where: {
+            subCategoryId_year: {
+              subCategoryId: existingExpense.subCategoryId,
+              year: oldYear,
+            },
+          },
+        });
+
+        if (oldBudget) {
+          await db.budget.update({
+            where: { id: oldBudget.id },
+            data: {
+              usedAmount: {
+                decrement: existingExpense.supplementaryCoverage,
+              },
+            },
+          });
+        }
+      }
+
+      // Increment new budget
+      const newBudget = await db.budget.findUnique({
+        where: {
+          subCategoryId_year: {
+            subCategoryId,
+            year,
+          },
+        },
+      });
+
+      if (newBudget) {
+        await db.budget.update({
+          where: { id: newBudget.id },
+          data: {
+            usedAmount: {
+              increment: calculation.supplementaryCoverage,
+            },
+          },
+        });
+      }
+    }
+
+    return NextResponse.json(expense);
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    return NextResponse.json(
+      { error: 'Failed to update expense' },
       { status: 500 }
     );
   }
