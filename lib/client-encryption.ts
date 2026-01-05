@@ -50,7 +50,12 @@ export async function importKey(keyData: string): Promise<CryptoKey> {
  * Generate a random IV (Initialization Vector)
  */
 function generateIV(): Uint8Array {
-  return crypto.getRandomValues(new Uint8Array(12)); // 12 bytes for GCM
+  const iv = new Uint8Array(12); // 12 bytes for GCM
+  crypto.getRandomValues(iv);
+  // Ensure we have a proper ArrayBuffer by creating a new ArrayBuffer and copying
+  const buffer = new ArrayBuffer(12);
+  new Uint8Array(buffer).set(iv);
+  return new Uint8Array(buffer);
 }
 
 /**
@@ -72,10 +77,11 @@ export async function encryptFile(file: File): Promise<{
   const fileData = await file.arrayBuffer();
   
   // Encrypt the data
+  // Type assertion to ensure IV has proper ArrayBuffer (not ArrayBufferLike)
   const encryptedData = await crypto.subtle.encrypt(
     {
       name: ALGORITHM,
-      iv: iv,
+      iv: iv as Uint8Array & { buffer: ArrayBuffer },
     },
     key,
     fileData
@@ -103,12 +109,16 @@ export async function decryptFile(
   ivString: string
 ): Promise<ArrayBuffer> {
   const key = await importKey(keyString);
-  const iv = Uint8Array.from(atob(ivString), (c) => c.charCodeAt(0));
+  // Ensure IV has proper ArrayBuffer by creating a new one
+  const ivData = Uint8Array.from(atob(ivString), (c) => c.charCodeAt(0));
+  const buffer = new ArrayBuffer(ivData.length);
+  new Uint8Array(buffer).set(ivData);
+  const iv = new Uint8Array(buffer);
   
   return await crypto.subtle.decrypt(
     {
       name: ALGORITHM,
-      iv: iv,
+      iv: iv as Uint8Array & { buffer: ArrayBuffer },
     },
     key,
     encryptedData

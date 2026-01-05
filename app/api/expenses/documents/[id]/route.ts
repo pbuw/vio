@@ -50,7 +50,8 @@ export async function GET(
     );
 
     // Return file with proper headers
-    return new NextResponse(decryptedData, {
+    // Convert Buffer to Uint8Array for NextResponse compatibility
+    return new NextResponse(new Uint8Array(decryptedData), {
       headers: {
         'Content-Type': document.fileType,
         'Content-Disposition': `attachment; filename="${encodeURIComponent(document.fileName)}"`,

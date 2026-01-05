@@ -266,7 +266,7 @@ export default function ExpenseForm({ onClose, expense }: ExpenseFormProps) {
 
       if (response.ok) {
         const expenseData = await response.json();
-        const expenseId = expenseData.id || expense.id;
+        const expenseId = expenseData.id || expense?.id;
         
         // Upload files if any selected
         if (selectedFiles.length > 0) {
