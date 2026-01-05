@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import Footer from "./components/Footer";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -28,9 +29,14 @@ export default function RootLayout({
   return (
     <html lang="de" className="light" style={{ colorScheme: 'light' }}>
       <body
-        className={`${poppins.variable} ${inter.variable} antialiased bg-[#F9FAFC] text-[#2D3436]`}
+        className={`${poppins.variable} ${inter.variable} antialiased bg-[#F9FAFC] text-[#2D3436] flex flex-col min-h-screen`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

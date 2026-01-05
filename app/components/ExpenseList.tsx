@@ -20,6 +20,14 @@ interface Expense {
       name: string;
     };
   };
+  documents?: Array<{
+    id: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    documentType: string;
+    createdAt: string;
+  }>;
 }
 
 interface ExpenseListProps {
@@ -207,7 +215,29 @@ export default function ExpenseList({ onEdit, categoryId, categoryName, onClearF
                     </div>
                   </td>
                   <td className="py-3 px-3 text-[#2D3436]/70">
-                    {expense.description || '-'}
+                    <div className="flex items-center gap-2">
+                      <span>{expense.description || '-'}</span>
+                      {expense.documents && expense.documents.length > 0 && (
+                        <div className="flex items-center gap-1" title={`${expense.documents.length} Dokument${expense.documents.length > 1 ? 'e' : ''}`}>
+                          <svg
+                            className="w-4 h-4 text-[#5844AC]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <span className="text-xs text-[#5844AC] font-medium">
+                            {expense.documents.length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-3 text-right font-semibold text-[#2D3436] font-poppins">
                     CHF {expense.amount.toFixed(2)}

@@ -69,6 +69,16 @@ export async function GET(request: NextRequest) {
             category: true,
           },
         },
+        documents: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            documentType: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
         date: 'desc',
@@ -157,6 +167,16 @@ export async function POST(request: NextRequest) {
         subCategory: {
           include: {
             category: true,
+          },
+        },
+        documents: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            documentType: true,
+            createdAt: true,
           },
         },
       },
@@ -380,6 +400,16 @@ export async function PUT(request: NextRequest) {
         subCategory: {
           include: {
             category: true,
+          },
+        },
+        documents: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            documentType: true,
+            createdAt: true,
           },
         },
       },

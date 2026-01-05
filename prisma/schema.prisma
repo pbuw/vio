@@ -99,6 +99,7 @@ model Expense {
   userPays          Float       // Amount user has to pay
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
+  documents         ExpenseDocument[]
 }
 
 model Budget {
@@ -174,5 +175,18 @@ model TemplateBudget {
   updatedAt     DateTime    @updatedAt
 
   @@unique([templateSubCategoryId, year])
+}
+
+model ExpenseDocument {
+  id            String    @id @default(cuid())
+  expenseId     String
+  expense       Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileName      String
+  fileType      String    // MIME type: application/pdf, image/jpeg, image/png
+  fileSize      Int       // Size in bytes
+  encryptedData Bytes     // Encrypted file content (BYTEA in PostgreSQL)
+  documentType  String    // "invoice" or "reimbursement"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
